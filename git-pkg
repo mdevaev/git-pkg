@@ -1,0 +1,134 @@
+#!/bin/sh
+#
+# Git command for build package in chroot
+#  by Devaev Maxim <mdevaev@gmail.com> (c) 2011 v0.1
+#
+#####
+
+
+USAGE='[-d=system|--dest=system] [-f|--force] [changelog|build]'
+
+. git-sh-setup
+. git-pkg-deb
+
+
+##### Common functions #####
+check_version() {
+    local version_tag_pattern=`echo "$PKG_TAG_FORMAT" \
+        | sed -e "s/%t/$PKG_TYPE/g" \
+        | sed -e "s/%v/*/g" \
+        | sed -e "s/%a/$PKG_ARCH/g" \
+        | sed -e "s/%n/$PKG_DEST/g" \
+        | sed -e "s/%m/$PKG_META/g"`
+	local last_tag=`git describe --tags --abbrev=0 --match "$version_tag_pattern" 2>/dev/null`
+	local new_tag="$1"
+
+	[ -z "$last_tag" ] || local last_tag_commit=`git show --no-notes --format=format:%H "$last_tag" | head -n 1`
+	local head_commit=`git show --no-notes --format=format:%H HEAD | head -n 1`
+
+	if [ "$last_tag_commit" != "$head_commit" -o -z "$last_tag" ]; then
+		if [ -n "$OPT_FORCE_REBUILD" ]; then
+			say "Forced building without new tag"
+		elif [ "$last_tag" == "$new_tag" ]; then
+            die "To build you must specify a new package version/release"
+		else
+			say "New build tag: $new_tag"
+		fi
+	elif [ -z "$OPT_FORCE_REBUILD" ]; then
+		die "Last build in tag \"$last_tag\", HEAD not updated"
+	fi
+}
+
+set_version() {
+    git tag "$1"
+}
+
+
+##### Actions #####
+changelog() {
+    local version_tag_pattern=`echo "$PKG_TAG_FORMAT" \
+        | sed -e "s/%t/$PKG_TYPE/g" \
+        | sed -e "s/%v/*/g" \
+        | sed -e "s/%a/$PKG_ARCH/g" \
+        | sed -e "s/%n/$PKG_DEST/g" \
+        | sed -e "s/%m/$PKG_META/g"`
+    local last_tag=`git describe --tags --abbrev=0 --match "$version_tag_pattern" 2>/dev/null`
+
+    if [ -n "$last_tag" ]; then
+        git log --format="format:%s" "$last_tag"..HEAD | uniq | ${PKG_TYPE}_update_changelog
+    else
+        echo "Initial build" | ${PKG_TYPE}_update_changelog
+    fi
+    ${PKG_TYPE}_edit_changelog
+}
+
+
+build() {
+    local version_tag=`echo "$PKG_TAG_FORMAT" \
+        | sed -e "s/%t/$PKG_TYPE/g" \
+        | sed -e "s/%v/\`${PKG_TYPE}_last_version "$PKG_SCHROOT"\`/g" \
+        | sed -e "s/%a/$PKG_ARCH/g" \
+        | sed -e "s/%n/$PKG_DEST/g" \
+        | sed -e "s/%m/$PKG_META/g"`
+
+    check_version "$version_tag"
+    ${PKG_TYPE}_build || die "Build error"
+    set_version "$version_tag"
+}
+
+
+##### Check configuration #####
+check_config() {
+    for var in schroot type arch; do
+        [ -n "`git config pkg."$PKG_DEST"."$var"`" ] || die "Git-pkg dest option pkg.$PKG_DEST.$var is not defined"
+    done
+
+    [ -n "$PKG_TAG_FORMAT" ] || die "Git-pkg option pkg.tag-format is not defined"
+    [ -n "$EDITOR" ] || die "\$EDITOR or core.editor is not defined"
+    [ -e "git-pkg-$PKG_TYPE" ] || die "Unknown type \"$PKG_TYPE\" in pkg.$PKG_DEST.type"
+    [ -n "`schroot -l | grep "^chroot:$PKG_SCHROOT$"`" ] || die "Unknown chroot \"$PKG_SCHROOT\""
+
+    ${PKG_TYPE}_check_config
+
+    say "Build configuration:"
+    say "    Destination: $PKG_DEST"
+    say "    Chroot: $PKG_SCHROOT"
+    say "    System type: $PKG_TYPE"
+    say "    Architecture: $PKG_ARCH"
+    say "    Distr meta: $PKG_META"
+    say
+    schroot -c "$PKG_SCHROOT" -- /bin/true && say "Schroot test OK" || die "Schroot test FAIL"
+}
+
+
+##### Main #####
+while test $# != "0"; do
+    case "$1" in
+        -d|--dest*)
+            case "$#,$1" in
+                *,*=*) PKG_DEST=`expr "z$1" : 'z-[^=]*=\(.*\)'`;;
+                1,*) usage;;
+                *) PKG_DEST="$2"; shift;;
+            esac;;
+        -f|--force) OPT_FORCE_REBUILD="1";;
+        --) break;;
+        -*) usage;;
+        *) break;;
+    esac
+    shift
+done
+[ -n "$PKG_DEST" ] || PKG_DEST=`git config pkg.default`
+[ -n "$PKG_DEST" ] || die "Please, specify a destination"
+
+PKG_SCHROOT=`git config pkg."$PKG_DEST".schroot`
+PKG_TYPE=`git config pkg."$PKG_DEST".type`
+PKG_ARCH=`git config pkg."$PKG_DEST".arch`
+PKG_META=`git config pkg."$PKG_DEST".meta`
+PKG_TAG_FORMAT=`git config pkg.tag-format || echo "pkg-%t-%n-%v-%a"`
+EDITOR=`git config core.editor || echo "$EDITOR"`
+case "$1" in
+    c|changelog) check_config; changelog;;
+    b|build) check_config; build;;
+    *) check_config;;
+esac
+

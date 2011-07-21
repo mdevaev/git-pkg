@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+# Deb-build plugin for git-pkg
+#  by Devaev Maxim <mdevaev@gmail.com> (c) 2011 v0.1
+#
+#####
+
+
+. git-sh-setup
+
+
+#####
+PKG_DEB_DEST="git-pkg-deb"
+PKG_DEB_BUILDROOT="$PKG_DEB_DEST/buildroot"
+
+
+#####
+deb_check_config() {
+    for var in DEBFULLNAME DEBMAIL; do
+        [ -n "`eval echo \\$"$var"`" ] || die "Variable \$$var is not defined"
+    done
+}
+
+
+#####
+deb_project_name() {
+    git show HEAD:debian/control | grep "Source:" | awk '{print $2}'
+}
+
+deb_last_version() {
+    git show HEAD:debian/changelog | head -n 1 | awk '{print $2}' | sed -e 's/^(\(.*\))$/\1/g'
+}
+
+
+#####
+deb_update_changelog() {
+    echo -e "`deb_project_name` (\$VERSION\$) unstable; urgency=low\n" > debian/changelog.new
+    sed -e 's/^\(.*\)$/  * \1/g' >> debian/changelog.new
+    echo -e "\n -- $DEBFULLNAME <$DEBMAIL>  `LC_ALL=C date -R`\n" >> debian/changelog.new
+
+    cat debian/changelog >> debian/changelog.new
+    mv debian/changelog.new debian/changelog
+}
+
+deb_edit_changelog() {
+    $EDITOR debian/changelog
+}
+
+
+deb_build() {
+    local debuild_opts=`git config pkg.debuild-opts || echo "--no-tgz-check --no-lintian"`
+
+    mkdir -p "$PKG_DEB_BUILDROOT"
+    git checkout-index -f -a --prefix="$PKG_DEB_BUILDROOT/" || return "1"
+
+    pushd "$PKG_DEB_BUILDROOT"
+    schroot -c "$PKG_SCHROOT" -- /bin/sh -c "debuild $debuild_opts -a$PKG_ARCH && debuild clean"
+    local ret="$?"
+    popd
+
+    [ "$ret" -ne "0" ] || rm -rf "$PKG_DEB_BUILDROOT"
+
+    return "$ret"
+}
+
