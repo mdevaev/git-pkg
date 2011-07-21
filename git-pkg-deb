@@ -8,6 +8,8 @@
 
 . git-sh-setup
 
+PKG_TYPE_deb="1"
+
 
 #####
 PKG_DEB_DEST="git-pkg-deb"
@@ -48,6 +50,8 @@ deb_edit_changelog() {
 
 
 deb_build() {
+    schroot -c "$PKG_SCHROOT" -- /bin/true || die "Schroot test FAIL"
+
     local debuild_opts=`git config pkg.debuild-opts || echo "--no-tgz-check --no-lintian"`
 
     mkdir -p "$PKG_DEB_BUILDROOT"
