@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Git command for build package in chroot
 #  by Devaev Maxim <mdevaev@gmail.com> (c) 2011 v0.1

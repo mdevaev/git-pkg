@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Deb-build plugin for git-pkg
 #  by Devaev Maxim <mdevaev@gmail.com> (c) 2011 v0.1
