@@ -35,9 +35,12 @@ deb_last_version() {
 
 #####
 deb_update_changelog() {
-    echo -e "`deb_project_name` (\$VERSION\$) unstable; urgency=low\n" > debian/changelog.new
+    local project_name=`deb_project_name`
+    local now=`LC_ALL="C" date -R`
+
+    echo -e "$project_name (~~~) unstable; urgency=low\n" > debian/changelog.new
     sed -e 's/^\(.*\)$/  * \1/g' >> debian/changelog.new
-    echo -e "\n -- $FULLNAME <$EMAIL>  `LC_ALL=C date -R`\n" >> debian/changelog.new
+    echo -e "\n -- $FULLNAME <$EMAIL>  $now\n" >> debian/changelog.new
 
     cat debian/changelog >> debian/changelog.new
     mv debian/changelog.new debian/changelog
@@ -45,19 +48,26 @@ deb_update_changelog() {
 
 deb_edit_changelog() {
     $EDITOR debian/changelog
+
+    local new_version=`head -n 1 debian/changelog | awk '{print $2}' | sed -e 's/^(\(.*\))$/\1/g'`
+    [ "$new_version" != "~~~" ] || die "Please, specify a correct version instead \"~~~\" in changelog"
+
+    git add -f debian/changelog
+    git commit -m "Git-pkg autocommit: $PKG_TYPE changelog for $new_version"
 }
 
 
 deb_build() {
+    rm -rf "$PKG_DEB_BUILDROOT"
     mkdir -p "$PKG_DEB_BUILDROOT"
     git checkout-index -f -a --prefix="$PKG_DEB_BUILDROOT/" || return "1"
 
     pushd "$PKG_DEB_BUILDROOT"
     local debuild_opts=`git config pkg.debuild-opts || echo "--no-tgz-check --no-lintian"`
     if [ -n "$PKG_SCHROOT" ]; then
-        schroot -c "$PKG_SCHROOT" -- /bin/sh -c "debuild $debuild_opts -a$PKG_ARCH && debuild clean"
+        LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/sh -c "debuild $debuild_opts -a$PKG_ARCH && debuild clean"
     else
-        debuild $debuild_opts -a$PKG_ARCH && debuild clean
+        LC_ALL="C" debuild $debuild_opts -a$PKG_ARCH && debuild clean
     fi
     local ret="$?"
     popd

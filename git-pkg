@@ -86,7 +86,7 @@ system_info() {
     say "  Arch          $PKG_ARCH"
     say "  Distr         $PKG_META"
     if [ -n "$PKG_SCHROOT" ]; then
-        schroot -c "$PKG_SCHROOT" -- /bin/true && say "  Schroot test  OK" || die "  Schroot test FAIL"
+        schroot -p -c "$PKG_SCHROOT" -- /bin/true && say "  Schroot test  OK" || die "  Schroot test FAIL"
         say
         schroot -i "$PKG_SCHROOT"
     fi
