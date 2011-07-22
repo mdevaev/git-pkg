@@ -18,9 +18,8 @@ PKG_DEB_BUILDROOT="$PKG_DEB_DEST/buildroot"
 
 #####
 deb_check_config() {
-    for var in DEBFULLNAME DEBMAIL; do
-        [ -n "`eval echo \\$"$var"`" ] || die "Variable \$$var is not defined"
-    done
+    [ -z "$DEBFULLNAME" ] || FULLNAME="$DEBFULLNAME"
+    [ -z "$DEBMAIL" ] || EMAIL="$DEBMAIL"
 }
 
 
@@ -38,7 +37,7 @@ deb_last_version() {
 deb_update_changelog() {
     echo -e "`deb_project_name` (\$VERSION\$) unstable; urgency=low\n" > debian/changelog.new
     sed -e 's/^\(.*\)$/  * \1/g' >> debian/changelog.new
-    echo -e "\n -- $DEBFULLNAME <$DEBMAIL>  `LC_ALL=C date -R`\n" >> debian/changelog.new
+    echo -e "\n -- $FULLNAME <$EMAIL>  `LC_ALL=C date -R`\n" >> debian/changelog.new
 
     cat debian/changelog >> debian/changelog.new
     mv debian/changelog.new debian/changelog
@@ -50,15 +49,16 @@ deb_edit_changelog() {
 
 
 deb_build() {
-    schroot -c "$PKG_SCHROOT" -- /bin/true || die "Schroot test FAIL"
-
-    local debuild_opts=`git config pkg.debuild-opts || echo "--no-tgz-check --no-lintian"`
-
     mkdir -p "$PKG_DEB_BUILDROOT"
     git checkout-index -f -a --prefix="$PKG_DEB_BUILDROOT/" || return "1"
 
     pushd "$PKG_DEB_BUILDROOT"
-    schroot -c "$PKG_SCHROOT" -- /bin/sh -c "debuild $debuild_opts -a$PKG_ARCH && debuild clean"
+    local debuild_opts=`git config pkg.debuild-opts || echo "--no-tgz-check --no-lintian"`
+    if [ -n "$PKG_SCHROOT" ]; then
+        schroot -c "$PKG_SCHROOT" -- /bin/sh -c "debuild $debuild_opts -a$PKG_ARCH && debuild clean"
+    else
+        debuild $debuild_opts -a$PKG_ARCH && debuild clean
+    fi
     local ret="$?"
     popd
 
