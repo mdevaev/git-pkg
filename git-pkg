@@ -20,7 +20,6 @@ check_version() {
         | sed -e "s/%a/$PKG_ARCH/g" \
         | sed -e "s/%n/$PKG_DEST/g" \
         | sed -e "s/%m/$PKG_META/g"`
-    #local last_tag=`git describe --tags --abbrev=0 --match "$version_tag_pattern" 2>/dev/null`
     local last_tag=`git tag | grep "$version_tag_pattern" | sort -r | head -n 1`
     local new_tag="$1"
 
@@ -51,7 +50,6 @@ changelog() {
         | sed -e "s/%a/$PKG_ARCH/g" \
         | sed -e "s/%n/$PKG_DEST/g" \
         | sed -e "s/%m/$PKG_META/g"`
-    #local last_tag=`git describe --tags --abbrev=0 --match "$version_tag_pattern" 2>/dev/null`
     local last_tag=`git tag | grep "$version_tag_pattern" | sort -r | head -n 1`
 
     if [ -n "$last_tag" ]; then
@@ -71,9 +69,9 @@ build() {
         | sed -e "s/%n/$PKG_DEST/g" \
         | sed -e "s/%m/$PKG_META/g"`
 
-    [ -n "$OPT_FORCE_REBUILD" ] || check_version "$version_tag"
-    ${PKG_TYPE}_build || die "  --- Build error ---"
-    [ -n "$OPT_FORCE_REBUILD" ] || set_version "$version_tag"
+    [ -n "$OPT_FORCE_BUILD" ] || check_version "$version_tag"
+    [ -n "$OPT_FAKE_BUILD" ] && say "Fake build" || (${PKG_TYPE}_build || die "  --- Build error ---")
+    [ -n "$OPT_FORCE_BUILD" ] || set_version "$version_tag"
 }
 
 
@@ -111,6 +109,7 @@ check_config() {
     done
 
     [ -n "`eval echo \\$PKG_TYPE_"$PKG_TYPE"`" ] || die "Unknown type \"$PKG_TYPE\" in pkg.$PKG_DEST.type"
+    which schroot >/dev/null 2>&1 || die "Bin \"schroot\" is not found"
     [ -n "$PKG_SCHROOT" ] && ( [ -n "`schroot -l | grep "^chroot:$PKG_SCHROOT$"`" ] || die "Unknown chroot \"$PKG_SCHROOT\"" )
 
     ${PKG_TYPE}_check_config
@@ -126,7 +125,8 @@ while test $# != "0"; do
                 1,*) usage;;
                 *) PKG_DEST="$2"; shift;;
             esac;;
-        -f|--force) OPT_FORCE_REBUILD="1";;
+        -f|--force) OPT_FORCE_BUILD="1";;
+        --fake) OPT_FAKE_BUILD="1";;
         --) break;;
         -*) usage;;
         *) break;;
