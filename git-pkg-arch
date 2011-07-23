@@ -35,7 +35,7 @@ arch_last_version() {
     local tmp_pkgbuild=`mktemp`
     git show HEAD:PKGBUILD > "$tmp_pkgbuild"
     . "$tmp_pkgbuild"
-    echo "$pkgver"
+    echo "$pkgver-$pkgrel"
     rm -f "$tmp_pkgbuild"
 }
 
@@ -49,8 +49,8 @@ arch_update_changelog() {
 arch_edit_changelog() {
     $EDITOR PKGBUILD
     . PKGBUILD
-    git add -f debian/changelog
-    git commit -m "Git-pkg autocommit: $PKG_TYPE PKGBUILD for $pkgver"
+    git add -f PKGBUILD
+    git commit -m "Git-pkg autocommit: $PKG_TYPE PKGBUILD for $pkgver-$pkgrel"
 }
 
 
