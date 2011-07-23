@@ -47,7 +47,10 @@ arch_update_changelog() {
 }
 
 arch_edit_changelog() {
-    true
+    $EDITOR PKGBUILD
+    . PKGBUILD
+    git add -f debian/changelog
+    git commit -m "Git-pkg autocommit: $PKG_TYPE PKGBUILD for $pkgver"
 }
 
 
