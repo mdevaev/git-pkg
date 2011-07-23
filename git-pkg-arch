@@ -18,66 +18,66 @@ PKG_ARCH_BUILDROOT="$PKG_ARCH_ROOT/buildroot"
 
 #####
 arch_check_config() {
-    [ -e "PKGBUILD" ] || die "PKGBUILD does not exists"
+	[ -e "PKGBUILD" ] || die "PKGBUILD does not exists"
 }
 
 
 #####
 arch_project_name() {
-    local tmp_pkgbuild=`mktemp`
-    git show HEAD:PKGBUILD > "$tmp_pkgbuild"
-    . "$tmp_pkgbuild"
-    echo "$pkgname"
-    rm -f "$tmp_pkgbuild"
+	local tmp_pkgbuild=`mktemp`
+	git show HEAD:PKGBUILD > "$tmp_pkgbuild"
+	. "$tmp_pkgbuild"
+	echo "$pkgname"
+	rm -f "$tmp_pkgbuild"
 }
 
 arch_last_version() {
-    local tmp_pkgbuild=`mktemp`
-    git show HEAD:PKGBUILD > "$tmp_pkgbuild"
-    . "$tmp_pkgbuild"
-    echo "$pkgver-$pkgrel"
-    rm -f "$tmp_pkgbuild"
+	local tmp_pkgbuild=`mktemp`
+	git show HEAD:PKGBUILD > "$tmp_pkgbuild"
+	. "$tmp_pkgbuild"
+	echo "$pkgver-$pkgrel"
+	rm -f "$tmp_pkgbuild"
 }
 
 
 #####
 arch_update_changelog() {
-    echo "TODO: No standard changelog"
-    sed -e 's/^\(.*\)$/  * \1/g'
+	echo "TODO: No standard changelog"
+	sed -e 's/^\(.*\)$/  * \1/g'
 }
 
 arch_edit_changelog() {
-    $EDITOR PKGBUILD
-    . PKGBUILD
-    git add -f PKGBUILD
-    git commit -m "Git-pkg autocommit: $PKG_TYPE PKGBUILD for $pkgver-$pkgrel"
+	$EDITOR PKGBUILD
+	. PKGBUILD
+	git add -f PKGBUILD
+	git commit -m "Git-pkg autocommit: $PKG_TYPE PKGBUILD for $pkgver-$pkgrel"
 }
 
 
 arch_build_prepare() {
-    rm -rf "$PKG_ARCH_ROOT"
-    mkdir -p "$PKG_ARCH_BUILDROOT"
-    git checkout-index -f -a --prefix="$PKG_ARCH_BUILDROOT/" || return "1"
+	rm -rf "$PKG_ARCH_ROOT"
+	mkdir -p "$PKG_ARCH_BUILDROOT"
+	git checkout-index -f -a --prefix="$PKG_ARCH_BUILDROOT/" || return "1"
 }
 
 arch_build() {
-    local project_name=`arch_project_name`
-    local makepkg_opts=`git config pkg.makepkg-opts || echo "--holdver --clean"`
+	local project_name=`arch_project_name`
+	local makepkg_opts=`git config pkg.makepkg-opts || echo "--holdver --clean"`
 
-    pushd "$PKG_ARCH_BUILDROOT"
-    if [ -n "$PKG_SCHROOT" ]; then
-        LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "makepkg $makepkg_opts"
-    else
-        LC_ALL="C" makepkg $makepkg_opts
-    fi
-    local ret="$?"
-    [ "$ret" -ne "0" ] || mv "$project_name"*.tar.* ..
-    popd
+	pushd "$PKG_ARCH_BUILDROOT"
+	if [ -n "$PKG_SCHROOT" ]; then
+		LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "makepkg $makepkg_opts"
+	else
+		LC_ALL="C" makepkg $makepkg_opts
+	fi
+	local ret="$?"
+	[ "$ret" -ne "0" ] || mv "$project_name"*.tar.* ..
+	popd
 
-    return "$ret"
+	return "$ret"
 }
 
 arch_build_clean() {
-    rm -rf "$PKG_ARCH_BUILDROOT"
+	rm -rf "$PKG_ARCH_BUILDROOT"
 }
 

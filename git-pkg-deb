@@ -18,79 +18,79 @@ PKG_DEB_BUILDROOT="$PKG_DEB_ROOT/buildroot"
 
 #####
 deb_check_config() {
-    [ -z "$DEBFULLNAME" ] || FULLNAME="$DEBFULLNAME"
-    [ -z "$DEBMAIL" ] || EMAIL="$DEBMAIL"
-    [ -d "debian" ] || die "Debian package directory does not exists"
+	[ -z "$DEBFULLNAME" ] || FULLNAME="$DEBFULLNAME"
+	[ -z "$DEBMAIL" ] || EMAIL="$DEBMAIL"
+	[ -d "debian" ] || die "Debian package directory does not exists"
 }
 
 
 #####
 deb_project_name() {
-    git show HEAD:debian/control | grep "Source:" | awk '{print $2}'
+	git show HEAD:debian/control | grep "Source:" | awk '{print $2}'
 }
 
 deb_last_version() {
-    git show HEAD:debian/changelog | head -n 1 | awk '{print $2}' | sed -e 's/^(\(.*\))$/\1/g'
+	git show HEAD:debian/changelog | head -n 1 | awk '{print $2}' | sed -e 's/^(\(.*\))$/\1/g'
 }
 
 
 #####
 deb_update_changelog() {
-    local project_name=`deb_project_name`
-    local now=`LC_ALL="C" date -R`
+	local project_name=`deb_project_name`
+	local now=`LC_ALL="C" date -R`
 
-    echo -e "$project_name () unstable; urgency=low\n" > debian/changelog.new
-    sed -e 's/^\(.*\)$/  * \1/g' >> debian/changelog.new
-    echo -e "\n -- $FULLNAME <$EMAIL>  $now\n" >> debian/changelog.new
+	echo -e "$project_name () unstable; urgency=low\n" > debian/changelog.new
+	sed -e 's/^\(.*\)$/  * \1/g' >> debian/changelog.new
+	echo -e "\n -- $FULLNAME <$EMAIL>  $now\n" >> debian/changelog.new
 
-    cat debian/changelog >> debian/changelog.new
-    mv debian/changelog.new debian/changelog
+	cat debian/changelog >> debian/changelog.new
+	mv debian/changelog.new debian/changelog
 }
 
 deb_edit_changelog() {
-    $EDITOR debian/changelog
+	$EDITOR debian/changelog
 
-    local new_version=`head -n 1 debian/changelog | awk '{print $2}' | sed -e 's/^(\(.*\))$/\1/g'`
-    [ -n "$new_version" ] || die "Please, specify a correct version in changelog"
+	local new_version=`head -n 1 debian/changelog | awk '{print $2}' | sed -e 's/^(\(.*\))$/\1/g'`
+	[ -n "$new_version" ] || die "Please, specify a correct version in changelog"
 
-    git add -f debian/changelog
-    git commit -m "Git-pkg autocommit: $PKG_TYPE changelog for $new_version"
+	git add -f debian/changelog
+	git commit -m "Git-pkg autocommit: $PKG_TYPE changelog for $new_version"
 }
 
 
 deb_build_prepare() {
-    rm -rf "$PKG_DEB_ROOT"
-    mkdir -p "$PKG_DEB_BUILDROOT"
-    git checkout-index -f -a --prefix="$PKG_DEB_BUILDROOT/" || return "1"
+	rm -rf "$PKG_DEB_ROOT"
+	mkdir -p "$PKG_DEB_BUILDROOT"
+	git checkout-index -f -a --prefix="$PKG_DEB_BUILDROOT/" || return "1"
 }
 
 deb_build() {
-    local debuild_opts=`git config pkg.debuild-opts || echo "--no-tgz-check --no-lintian"`
+	local debuild_opts=`git config pkg.debuild-opts || echo "--no-tgz-check --no-lintian"`
 
-    pushd "$PKG_DEB_BUILDROOT"
-    if [ -n "$PKG_SCHROOT" ]; then
-        LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "debuild $debuild_opts -a$PKG_ARCH"
-    else
-        LC_ALL="C" debuild $debuild_opts -a$PKG_ARCH
-    fi
-    local ret="$?"
-    popd
+	pushd "$PKG_DEB_BUILDROOT"
+	if [ -n "$PKG_SCHROOT" ]; then
+		LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "debuild $debuild_opts -a$PKG_ARCH"
+	else
+		LC_ALL="C" debuild $debuild_opts -a$PKG_ARCH
+	fi
+	local ret="$?"
+	popd
 
-    return "$ret"
+	return "$ret"
 }
 
 deb_build_clean() {
-    pushd "$PKG_DEB_BUILDROOT"
-    if [ -n "$PKG_SCHROOT" ]; then
-        LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "debuild clean"
-    else
-        LC_ALL="C" debuild clean
-    fi
-    local ret="$?"
-    popd
+	pushd "$PKG_DEB_BUILDROOT"
+	if [ -n "$PKG_SCHROOT" ]; then
+		LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "debuild clean"
+	else
+		LC_ALL="C" debuild clean
+	fi
+	local ret="$?"
+	popd
 
-    [ "$ret" -ne "0" ] || rm -rf "$PKG_DEB_BUILDROOT"
+	[ "$ret" -ne "0" ] || rm -rf "$PKG_DEB_BUILDROOT"
 
-    return "$ret"
+	return "$ret"
 }
 

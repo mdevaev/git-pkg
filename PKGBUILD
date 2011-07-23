@@ -15,24 +15,24 @@ _gitname="git-pkg"
 
 
 build() {
-    cd $startdir/src
-    if [ -d $_gitname ]; then
-        msg "Updateing local repository..."
-        cd $_gitname
-        git pull origin master || return 1
-        msg "The local files are updated."
-        cd ..
-    else
-        git clone $_gitroot --depth=1
-    fi
+	cd $startdir/src
+	if [ -d $_gitname ]; then
+		msg "Updateing local repository..."
+		cd $_gitname
+		git pull origin master || return 1
+		msg "The local files are updated."
+		cd ..
+	else
+		git clone $_gitroot --depth=1
+	fi
 
-    msg "Git clone done or server timeout"
-    msg "Starting make..."
+	msg "Git clone done or server timeout"
+	msg "Starting make..."
 
-    rm -rf $_gitname-build
-    cp -r $_gitname $_gitname-build
-    cd $_gitname-build
+	rm -rf $_gitname-build
+	cp -r $_gitname $_gitname-build
+	cd $_gitname-build
 
-    make DESTDIR=$pkgdir install
+	make DESTDIR=$pkgdir install
 }
 
