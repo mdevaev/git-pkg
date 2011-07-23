@@ -12,8 +12,8 @@ PKG_TYPE_deb="1"
 
 
 #####
-PKG_DEB_DEST="git-pkg-deb"
-PKG_DEB_BUILDROOT="$PKG_DEB_DEST/buildroot"
+PKG_DEB_ROOT="pkg-root.deb"
+PKG_DEB_BUILDROOT="$PKG_DEB_ROOT/buildroot"
 
 
 #####
@@ -39,7 +39,7 @@ deb_update_changelog() {
     local project_name=`deb_project_name`
     local now=`LC_ALL="C" date -R`
 
-    echo -e "$project_name (~~~) unstable; urgency=low\n" > debian/changelog.new
+    echo -e "$project_name () unstable; urgency=low\n" > debian/changelog.new
     sed -e 's/^\(.*\)$/  * \1/g' >> debian/changelog.new
     echo -e "\n -- $FULLNAME <$EMAIL>  $now\n" >> debian/changelog.new
 
@@ -51,7 +51,7 @@ deb_edit_changelog() {
     $EDITOR debian/changelog
 
     local new_version=`head -n 1 debian/changelog | awk '{print $2}' | sed -e 's/^(\(.*\))$/\1/g'`
-    [ "$new_version" != "~~~" ] || die "Please, specify a correct version instead \"~~~\" in changelog"
+    [ -n "$new_version" ] || die "Please, specify a correct version in changelog"
 
     git add -f debian/changelog
     git commit -m "Git-pkg autocommit: $PKG_TYPE changelog for $new_version"
@@ -59,7 +59,7 @@ deb_edit_changelog() {
 
 
 deb_build_prepare() {
-    rm -rf "$PKG_DEB_BUILDROOT"
+    rm -rf "$PKG_DEB_ROOT"
     mkdir -p "$PKG_DEB_BUILDROOT"
     git checkout-index -f -a --prefix="$PKG_DEB_BUILDROOT/" || return "1"
 }

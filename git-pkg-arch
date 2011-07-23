@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# ArchLinux PKGBUILD plugin for git-pkg
+#  by Devaev Maxim <mdevaev@gmail.com> (c) 2011 v0.1
+#
+#####
+
+
+. git-sh-setup
+
+PKG_TYPE_arch="1"
+
+
+#####
+PKG_ARCH_ROOT="pkg-root.arch"
+
+
+#####
+arch_check_config() {
+    [ -e "PKGBUILD" ] || die "PKGBUILD does not exists"
+}
+
+
+#####
+arch_project_name() {
+    local tmp_pkgbuild=`mktemp`
+    git show HEAD:PKGBUILD > "$tmp_pkgbuild"
+    . "$tmp_pkgbuild"
+    echo "$pkgname"
+    rm -f "$tmp_pkgbuild"
+}
+
+arch_last_version() {
+    local tmp_pkgbuild=`mktemp`
+    git show HEAD:PKGBUILD > "$tmp_pkgbuild"
+    . "$tmp_pkgbuild"
+    echo "$pkgver"
+    rm -f "$tmp_pkgbuild"
+}
+
+
+#####
+arch_update_changelog() {
+    echo "TODO: No standard changelog"
+    sed -e 's/^\(.*\)$/  * \1/g'
+}
+
+arch_edit_changelog() {
+    true
+}
+
+
+arch_build_prepare() {
+    rm -rf "$PKG_ARCH_ROOT"
+    mkdir -p "$PKG_ARCH_ROOT"
+    git checkout-index -f -a --prefix="$PKG_ARCH_ROOT/" || return "1"
+}
+
+arch_build() {
+    local makepkg_opts=`git config pkg.makepkg-opts || echo "--holdver --clean"`
+
+    pushd "$PKG_ARCH_ROOT"
+    if [ -n "$PKG_SCHROOT" ]; then
+        LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "makepkg $makepkg_opts"
+    else
+        LC_ALL="C" makepkg $makepkg_opts
+    fi
+    local ret="$?"
+    popd
+
+    return "$ret"
+}
+
+arch_build_clean() {
+    rm -rf "$PKG_ARCH_ROOT"
+}
+

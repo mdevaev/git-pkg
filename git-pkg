@@ -9,6 +9,7 @@
 USAGE='[-d=system|--dest=system] [-f|--force] [--fake] [changelog|build]'
 
 . git-sh-setup
+. git-pkg-arch
 . git-pkg-deb
 
 
@@ -53,7 +54,8 @@ changelog() {
     local last_tag=`git tag | grep "$version_tag_pattern" | sort -r | head -n 1`
 
     if [ -n "$last_tag" ]; then
-        git log --format="format:%s" "$last_tag"..HEAD | uniq | ${PKG_TYPE}_update_changelog
+        local comments=`git log --format="format:%s" "$last_tag"..HEAD | uniq`
+        [ -n "$comments" ] && echo -e "$comments" | ${PKG_TYPE}_update_changelog || die "No fresh commits"
     else
         echo "Initial build" | ${PKG_TYPE}_update_changelog
     fi
