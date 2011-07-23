@@ -6,7 +6,7 @@
 #####
 
 
-USAGE='[-d=system|--dest=system] [-f|--force] [changelog|build]'
+USAGE='[-d=system|--dest=system] [-f|--force] [--fake] [changelog|build]'
 
 . git-sh-setup
 . git-pkg-deb
