@@ -72,6 +72,6 @@ arch_build() {
 }
 
 arch_build_clean() {
-    rm -rf "$PKG_ARCH_ROOT"
+    true
 }
 
