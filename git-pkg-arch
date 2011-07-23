@@ -71,7 +71,7 @@ arch_build() {
         LC_ALL="C" makepkg $makepkg_opts
     fi
     local ret="$?"
-    [ "$ret" -ne "0" ] || mv "$project_name*.tar.*" ..
+    [ "$ret" -ne "0" ] || mv "$project_name"*.tar.* ..
     popd
 
     return "$ret"
