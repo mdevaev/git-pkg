@@ -13,6 +13,7 @@ PKG_TYPE_arch="1"
 
 #####
 PKG_ARCH_ROOT="pkg-root.arch"
+PKG_ARCH_BUILDROOT="$PKG_ARCH_ROOT/buildroot"
 
 
 #####
@@ -52,26 +53,28 @@ arch_edit_changelog() {
 
 arch_build_prepare() {
     rm -rf "$PKG_ARCH_ROOT"
-    mkdir -p "$PKG_ARCH_ROOT"
-    git checkout-index -f -a --prefix="$PKG_ARCH_ROOT/" || return "1"
+    mkdir -p "$PKG_ARCH_BUILDROOT"
+    git checkout-index -f -a --prefix="$PKG_ARCH_BUILDROOT/" || return "1"
 }
 
 arch_build() {
+    local project_name=`arch_project_name`
     local makepkg_opts=`git config pkg.makepkg-opts || echo "--holdver --clean"`
 
-    pushd "$PKG_ARCH_ROOT"
+    pushd "$PKG_ARCH_BUILDROOT"
     if [ -n "$PKG_SCHROOT" ]; then
         LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "makepkg $makepkg_opts"
     else
         LC_ALL="C" makepkg $makepkg_opts
     fi
     local ret="$?"
+    [ "$ret" -ne "0" ] || mv "$project_name*.tar.*" ..
     popd
 
     return "$ret"
 }
 
 arch_build_clean() {
-    true
+    rm -rf "$PKG_ARCH_BUILDROOT"
 }
 
