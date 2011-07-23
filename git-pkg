@@ -70,7 +70,15 @@ build() {
         | sed -e "s/%m/$PKG_META/g"`
 
     [ -n "$OPT_FORCE_BUILD" ] || check_version "$version_tag"
-    [ -n "$OPT_FAKE_BUILD" ] && say "Fake build" || (${PKG_TYPE}_build || die "  --- Build error ---")
+
+    if [ -z "$OPT_FAKE_BUILD" ]; then
+        ${PKG_TYPE}_build_prepare || die "  --- Build prepare error ---"
+        ${PKG_TYPE}_build || die "  --- Build error ---"
+        ${PKG_TYPE}_build_clean  || die "  --- Build clean error ---"
+    else
+        say "Fake build"
+    fi
+
     [ -n "$OPT_FORCE_BUILD" ] || set_version "$version_tag"
 }
 

@@ -58,17 +58,33 @@ deb_edit_changelog() {
 }
 
 
-deb_build() {
+deb_build_prepare() {
     rm -rf "$PKG_DEB_BUILDROOT"
     mkdir -p "$PKG_DEB_BUILDROOT"
     git checkout-index -f -a --prefix="$PKG_DEB_BUILDROOT/" || return "1"
+}
+
+deb_build() {
+    local debuild_opts=`git config pkg.debuild-opts || echo "--no-tgz-check --no-lintian"`
 
     pushd "$PKG_DEB_BUILDROOT"
-    local debuild_opts=`git config pkg.debuild-opts || echo "--no-tgz-check --no-lintian"`
     if [ -n "$PKG_SCHROOT" ]; then
-        LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/sh -c "debuild $debuild_opts -a$PKG_ARCH && debuild clean"
+        LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "debuild $debuild_opts -a$PKG_ARCH"
     else
-        LC_ALL="C" debuild $debuild_opts -a$PKG_ARCH && debuild clean
+        LC_ALL="C" debuild $debuild_opts -a$PKG_ARCH
+    fi
+    local ret="$?"
+    popd
+
+    return "$ret"
+}
+
+deb_build_clean() {
+    pushd "$PKG_DEB_BUILDROOT"
+    if [ -n "$PKG_SCHROOT" ]; then
+        LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "debuild clean"
+    else
+        LC_ALL="C" debuild clean
     fi
     local ret="$?"
     popd
