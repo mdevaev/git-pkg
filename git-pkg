@@ -6,7 +6,7 @@
 #####
 
 
-USAGE='[-d=system|--dest=system] [-f|--force] [--fake] [changelog|build]'
+USAGE='[-d=system|--dest=system] [-f|--force] [--fake] [changelog|build|info|history]'
 
 . git-sh-setup
 . git-pkg-arch
@@ -101,6 +101,13 @@ system_info() {
 	say
 }
 
+build_history() {
+	local version_tag_pattern=`echo "$PKG_TAG_FORMAT" | sed -e "s/%[tvanm]/.*/g"`
+	for tag in `git tag | grep "$version_tag_pattern" | sort -r`; do
+		git show --no-notes --format="format:$tag --- [%an <%ae>  %ai]" "$tag" | head -n 1
+	done
+}
+
 
 ##### Check configuration #####
 check_config() {
@@ -150,6 +157,7 @@ case "$1" in
 	c|changelog) check_config; changelog;;
 	b|build) check_config; build;;
 	i|info) check_config; system_info;;
+	h|history) check_config; build_history;;
 	*) check_config;;
 esac
 
