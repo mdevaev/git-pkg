@@ -17,7 +17,7 @@ PKG_DEB_BUILDROOT="$PKG_DEB_ROOT/buildroot"
 
 
 #####
-deb_check_config() {
+deb_init_config() {
 	[ -z "$DEBFULLNAME" ] || FULLNAME="$DEBFULLNAME"
 	[ -z "$DEBMAIL" ] || EMAIL="$DEBMAIL"
 	[ -d "debian" ] || die "Debian package directory does not exists"

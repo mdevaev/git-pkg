@@ -13,6 +13,13 @@ USAGE='[-d=system|--dest=system] [-f|--force] [--fake] [changelog|build|info|his
 . git-pkg-deb
 
 
+##### Formatting #####
+paint() {
+	# For first argument, see man 4 console_codes
+	[ -n "$USE_COLORS" ] && echo -en "\e[1;$1m$2\e[0m" || echo -en "$2"
+}
+
+
 ##### Common functions #####
 check_version() {
 	local version_tag_pattern=`echo "$PKG_TAG_FORMAT" \
@@ -31,7 +38,7 @@ check_version() {
 		if [ "$last_tag" == "$new_tag" ]; then
 			die "To build you must specify a new package version/release"
 		else
-			say "New build tag: $new_tag"
+			echo "New build tag: $new_tag"
 		fi
 	else
 		die "Last build in tag \"$last_tag\", HEAD not updated"
@@ -78,7 +85,7 @@ build() {
 		${PKG_TYPE}_build || die "  --- Build error ---"
 		${PKG_TYPE}_build_clean  || die "  --- Build clean error ---"
 	else
-		say "Fake build"
+		echo "Fake build"
 	fi
 
 	[ -n "$OPT_FORCE_BUILD" ] || set_version "$version_tag"
@@ -86,31 +93,41 @@ build() {
 
 
 system_info() {
-	say
-	say "  --- Git-pkg values ---"
-	say "  Destination   $PKG_DEST"
-	say "  Chroot        $PKG_SCHROOT"
-	say "  Type          $PKG_TYPE"
-	say "  Arch          $PKG_ARCH"
-	say "  Distr         $PKG_META"
+	echo -e "\n  --- Git-pkg values ---"
+	echo "  Destination   $PKG_DEST"
+	echo "  Chroot        $PKG_SCHROOT"
+	echo "  Type          $PKG_TYPE"
+	echo "  Arch          $PKG_ARCH"
+	echo "  Distr         $PKG_META"
 	if [ -n "$PKG_SCHROOT" ]; then
-		schroot -p -c "$PKG_SCHROOT" -- /bin/true && say "  Schroot test  OK" || die "  Schroot test FAIL"
-		say
+		schroot -p -c "$PKG_SCHROOT" -- /bin/true && echo "  Schroot test  OK" || die "  Schroot test FAIL"
+		echo
 		schroot -i "$PKG_SCHROOT"
 	fi
-	say
+	echo
 }
 
 build_history() {
-	local version_tag_pattern=`echo "$PKG_TAG_FORMAT" | sed -e "s/%[tvanm]/.*/g"`
+	local version_tag_pattern=`echo "$PKG_TAG_FORMAT" \
+		| sed -e "s/%t/$PKG_TYPE/g" \
+		| sed -e "s/%a/$PKG_ARCH/g" \
+		| sed -e "s/%n/$PKG_DEST/g" \
+		| sed -e "s/%[vm]/.*/g" `
+
+	say "# Builds history for $PKG_DEST/$PKG_TYPE ($PKG_ARCH)"
+	say "#   * -- Your builds"
+	say "#   ~ -- Other builds"
+	say ""
+
 	for tag in `git tag | grep "$version_tag_pattern" | sort -r`; do
-		git show --no-notes --format="format:$tag --- [%an <%ae>  %ai]" "$tag" | head -n 1
+		local author=`git show --no-notes --format=format:%an $tag | head -n 1`
+		[ "$author" == "$FULLNAME" ] && echo "`paint 32 '*'` $tag" || echo "`paint 31 '~'` $tag"
 	done
 }
 
 
 ##### Check configuration #####
-check_config() {
+init_config() {
 	PKG_SCHROOT=`git config pkg."$PKG_DEST".schroot`
 	PKG_TYPE=`git config pkg."$PKG_DEST".type`
 	PKG_ARCH=`git config pkg."$PKG_DEST".arch || arch`
@@ -121,6 +138,8 @@ check_config() {
 	FULLNAME=`git config user.name`
 	EMAIL=`git config user.email`
 
+	USE_COLORS=`[ "\`git config color.status\`" == "no" ] || echo "1"` # FIXME: Auto = yes
+
 	for var in PKG_TYPE PKG_ARCH EDITOR FULLNAME EMAIL; do
 		[ -n "`eval echo \\$"$var"`" ] || die "Variable \$$var is not defined"
 	done
@@ -129,7 +148,7 @@ check_config() {
 	which schroot >/dev/null 2>&1 || die "Bin \"schroot\" is not found"
 	[ -n "$PKG_SCHROOT" ] && ( [ -n "`schroot -l | grep "^chroot:$PKG_SCHROOT$"`" ] || die "Unknown chroot \"$PKG_SCHROOT\"" )
 
-	${PKG_TYPE}_check_config
+	${PKG_TYPE}_init_config
 }
 
 
@@ -154,10 +173,10 @@ done
 [ -n "$PKG_DEST" ] || die "Please, specify a destination"
 
 case "$1" in
-	c|changelog) check_config; changelog;;
-	b|build) check_config; build;;
-	i|info) check_config; system_info;;
-	h|history) check_config; build_history;;
-	*) check_config;;
+	c|changelog) init_config; changelog;;
+	b|build) init_config; build;;
+	i|info) init_config; system_info;;
+	h|history) init_config; build_history;;
+	*) init_config;;
 esac
 

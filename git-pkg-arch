@@ -17,7 +17,7 @@ PKG_ARCH_BUILDROOT="$PKG_ARCH_ROOT/buildroot"
 
 
 #####
-arch_check_config() {
+arch_init_config() {
 	[ -e "PKGBUILD" ] || die "PKGBUILD does not exists"
 }
 
