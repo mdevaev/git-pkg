@@ -2,7 +2,7 @@
 
 pkgname=git-pkg
 pkgver=20110726
-pkgrel=1
+pkgrel=2
 pkgdesc="Git command for build package in chroot"
 arch=('any')
 url="http://github.com/mdevaev/git-pkg.git"
