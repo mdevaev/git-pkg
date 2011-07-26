@@ -9,6 +9,7 @@
 . git-sh-setup
 
 PKG_TYPE_deb="1"
+PKG_EXTENSIONS_deb="u upload"
 
 
 #####
@@ -92,5 +93,25 @@ deb_build_clean() {
 	[ "$ret" -ne "0" ] || rm -rf "$PKG_DEB_BUILDROOT"
 
 	return "$ret"
+}
+
+
+deb_upload() {
+	local dupload_opts=`git config pkg.dupload-opts || echo "--nomail"`
+	local to_upload="`deb_project_name`*`deb_last_version`*.changes"
+
+	pushd "$PKG_DEB_ROOT"
+	if [ -n "$PKG_SCHROOT" ]; then
+		LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "dupload $dupload_opts $to_upload"
+	else
+		LC_ALL="C" dupload $dupload_opts $to_upload
+	fi
+	local ret="$?"
+	popd
+
+	return "$ret"
+}
+deb_u() {
+	deb_upload
 }
 

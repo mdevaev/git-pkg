@@ -115,14 +115,27 @@ build_history() {
 		| sed -e "s/%[vm]/.*/g" `
 
 	say "# Builds history for $PKG_DEST/$PKG_TYPE ($PKG_ARCH)"
-	say "#   * -- Your builds"
-	say "#   ~ -- Other builds"
-	say ""
+	say "#   `paint 32 '*'` -- Your builds"
+	say "#   `paint 31 '~'` -- Other builds"
+	say
 
 	for tag in `git tag | grep "$version_tag_pattern" | sort -r`; do
 		local author=`git show --no-notes --format=format:%an $tag | head -n 1`
 		[ "$author" == "$FULLNAME" ] && echo "`paint 32 '*'` $tag" || echo "`paint 31 '~'` $tag"
 	done
+}
+
+
+extension() {
+	local extension="$1"
+	shift
+
+	for command in `eval echo \\$PKG_EXTENSIONS_"${PKG_TYPE}"`; do
+		[ "$extension" != "$command" ] || local command_exists_flag="1"
+	done
+	[ -n "$command_exists_flag" ] || die "Unknown command or extension \"$extension\""
+
+	${PKG_TYPE}_$extension $@
 }
 
 
@@ -177,6 +190,7 @@ case "$1" in
 	b|build) init_config; build;;
 	i|info) init_config; system_info;;
 	h|history) init_config; build_history;;
-	*) init_config;;
+	"") usage;;
+	*) init_config; extension $@;;
 esac
 
