@@ -55,7 +55,7 @@ deb_edit_changelog() {
 	local new_version=`head -n 1 debian/changelog | awk '{print $2}' | sed -e 's/^(\(.*\))$/\1/g'`
 	[ -n "$new_version" ] || die "Please, specify a correct version in changelog"
 
-	git add -f debian/changelog
+	git add debian/changelog
 	git commit -m "Git-pkg autocommit: $PKG_TYPE changelog for $new_version"
 }
 

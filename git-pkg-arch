@@ -50,7 +50,7 @@ arch_update_changelog() {
 arch_edit_changelog() {
 	$EDITOR PKGBUILD
 	source PKGBUILD
-	git add -f PKGBUILD
+	git add PKGBUILD
 	git commit -m "Git-pkg autocommit: $PKG_TYPE PKGBUILD for $pkgver-$pkgrel"
 }
 
