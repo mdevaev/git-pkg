@@ -1,8 +1,8 @@
 # Contributor : Devaev Maxim <mdevaev@gmail.com>
 
 pkgname=git-pkg
-pkgver=20110726
-pkgrel=2
+pkgver=20110727
+pkgrel=1
 pkgdesc="Git command for build package in chroot"
 arch=('any')
 url="http://github.com/mdevaev/git-pkg.git"
