@@ -6,7 +6,8 @@
 #####
 
 
-. git-sh-setup
+source git-sh-setup
+
 
 PKG_TYPE_arch="1"
 
@@ -26,7 +27,7 @@ arch_init_config() {
 arch_project_name() {
 	local tmp_pkgbuild=`mktemp`
 	git show HEAD:PKGBUILD > "$tmp_pkgbuild"
-	. "$tmp_pkgbuild"
+	source "$tmp_pkgbuild"
 	echo "$pkgname"
 	rm -f "$tmp_pkgbuild"
 }
@@ -34,7 +35,7 @@ arch_project_name() {
 arch_last_version() {
 	local tmp_pkgbuild=`mktemp`
 	git show HEAD:PKGBUILD > "$tmp_pkgbuild"
-	. "$tmp_pkgbuild"
+	source "$tmp_pkgbuild"
 	echo "$pkgver-$pkgrel"
 	rm -f "$tmp_pkgbuild"
 }
@@ -48,7 +49,7 @@ arch_update_changelog() {
 
 arch_edit_changelog() {
 	$EDITOR PKGBUILD
-	. PKGBUILD
+	source PKGBUILD
 	git add -f PKGBUILD
 	git commit -m "Git-pkg autocommit: $PKG_TYPE PKGBUILD for $pkgver-$pkgrel"
 }

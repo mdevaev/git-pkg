@@ -6,11 +6,12 @@
 #####
 
 
-USAGE='[-d=system|--dest=system] [-f|--force] [--fake] [changelog|build|info|history]'
+USAGE='[-d=system|--dest=system] [-f|--force] [--fake] [changelog|build|info|log]'
 
-. git-sh-setup
-. git-pkg-arch
-. git-pkg-deb
+
+source git-sh-setup
+source git-pkg-arch
+source git-pkg-deb
 
 
 ##### Formatting #####
@@ -107,14 +108,14 @@ system_info() {
 	echo
 }
 
-build_history() {
+builds_log() {
 	local version_tag_pattern=`echo "$PKG_TAG_FORMAT" \
 		| sed -e "s/%t/$PKG_TYPE/g" \
 		| sed -e "s/%a/$PKG_ARCH/g" \
 		| sed -e "s/%n/$PKG_DEST/g" \
 		| sed -e "s/%[vm]/.*/g" `
 
-	say "# Builds history for $PKG_DEST/$PKG_TYPE ($PKG_ARCH)"
+	say "# Builds log for $PKG_DEST/$PKG_TYPE ($PKG_ARCH)"
 	say "#   `paint 32 '*'` -- Your builds"
 	say "#   `paint 31 '~'` -- Other builds"
 	say
@@ -189,7 +190,7 @@ case "$1" in
 	c|changelog) init_config; changelog;;
 	b|build) init_config; build;;
 	i|info) init_config; system_info;;
-	h|history) init_config; build_history;;
+	l|log) init_config; builds_log;;
 	"") usage;;
 	*) init_config; extension $@;;
 esac

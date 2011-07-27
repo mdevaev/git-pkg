@@ -6,7 +6,8 @@
 #####
 
 
-. git-sh-setup
+source git-sh-setup
+
 
 PKG_TYPE_deb="1"
 PKG_EXTENSIONS_deb="u upload"
