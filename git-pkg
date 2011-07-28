@@ -159,7 +159,7 @@ init_config() {
 	done
 
 	[ -n "`eval echo \\$PKG_TYPE_"$PKG_TYPE"`" ] || die "Unknown type \"$PKG_TYPE\" in pkg.$PKG_DEST.type"
-	which schroot >/dev/null 2>&1 || die "Bin \"schroot\" is not found"
+	[ -n "$PKG_SCHROOT" ] && ( which schroot >/dev/null 2>&1 || die "Bin \"schroot\" is not found" )
 	[ -n "$PKG_SCHROOT" ] && ( [ -n "`schroot -l | grep "^chroot:$PKG_SCHROOT$"`" ] || die "Unknown chroot \"$PKG_SCHROOT\"" )
 
 	${PKG_TYPE}_init_config
