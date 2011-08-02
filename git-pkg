@@ -7,6 +7,7 @@
 
 
 USAGE='[-d=system|--dest=system] [-f|--force] [--fake] [changelog|build|info|log]'
+SUBDIRECTORY_OK="1"
 
 
 source git-sh-setup
@@ -142,6 +143,8 @@ extension() {
 
 ##### Check configuration #####
 init_config() {
+	cd_to_toplevel
+
 	PKG_SCHROOT=`git config pkg."$PKG_DEST".schroot`
 	PKG_TYPE=`git config pkg."$PKG_DEST".type`
 	PKG_ARCH=`git config pkg."$PKG_DEST".arch || arch`
