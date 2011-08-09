@@ -30,7 +30,7 @@ check_version() {
 		| sed -e "s/%a/$PKG_ARCH/g" \
 		| sed -e "s/%n/$PKG_DEST/g" \
 		| sed -e "s/%m/$PKG_META/g"`
-	local last_tag=`git tag | grep "$version_tag_pattern" | sort -r | head -n 1`
+	local last_tag=`git for-each-ref refs/tags --sort=-authordate --format='%(refname:short)' | grep "$version_tag_pattern" | head -n 1`
 	local new_tag="$1"
 
 	[ -z "$last_tag" ] || local last_tag_commit=`git show --no-notes --format=format:%H "$last_tag" | head -n 1`
@@ -60,7 +60,7 @@ changelog() {
 		| sed -e "s/%a/$PKG_ARCH/g" \
 		| sed -e "s/%n/$PKG_DEST/g" \
 		| sed -e "s/%m/$PKG_META/g"`
-	local last_tag=`git tag | grep "$version_tag_pattern" | sort -r | head -n 1`
+	local last_tag=`git for-each-ref refs/tags --sort=-authordate --format='%(refname:short)' | grep "$version_tag_pattern" | head -n 1`
 
 	if [ -n "$last_tag" ]; then
 		local comments=`git log --format="format:%s" "$last_tag"..HEAD | uniq`
@@ -122,12 +122,14 @@ builds_log() {
 	say "#   `paint 31 '~'` -- Other builds"
 	say
 
-	local make_log="git tag | grep \"$version_tag_pattern\" | sort -r"
+	local make_log="git for-each-ref refs/tags --sort=-authordate --format='%(authorname)::%(refname:short)' | grep \"$version_tag_pattern\""
 	[ -z "$OPT_N_LIMIT" ] || local make_log="$make_log | head -n $OPT_N_LIMIT"
-	for tag in `eval $make_log`; do
-		local author=`git show --no-notes --format=format:%an $tag | head -n 1`
-		[ "$author" == "$FULLNAME" ] && echo "`paint 32 '*'` $tag" || echo "`paint 31 '~'` $tag"
+
+	IFS=$'\n'
+	for row in `eval $make_log`; do
+		[ "${row%::*}" == "$FULLNAME" ] && echo "`paint 32 '*'` ${row#*::}" || echo "`paint 31 '~'` ${row#*::}"
 	done
+	unset IFS
 }
 
 
