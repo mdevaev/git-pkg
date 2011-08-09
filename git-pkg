@@ -6,7 +6,7 @@
 #####
 
 
-USAGE='[-d=system|--dest=system] [-f|--force] [--fake] [changelog|build|info|log]'
+USAGE='[-d Nsystem|--dest=system] [-n N|--limit=N] [-f|--force] [--fake] [changelog|build|info|log]'
 SUBDIRECTORY_OK="1"
 
 
@@ -117,11 +117,14 @@ builds_log() {
 		| sed -e "s/%[vm]/.*/g" `
 
 	say "# Builds log for $PKG_DEST/$PKG_TYPE ($PKG_ARCH)"
+	[ -z "$OPT_N_LIMIT" ] || say "# Last `paint 36 "$OPT_N_LIMIT"` builds"
 	say "#   `paint 32 '*'` -- Your builds"
 	say "#   `paint 31 '~'` -- Other builds"
 	say
 
-	for tag in `git tag | grep "$version_tag_pattern" | sort -r`; do
+	local make_log="git tag | grep \"$version_tag_pattern\" | sort -r"
+	[ -z "$OPT_N_LIMIT" ] || local make_log="$make_log | head -n $OPT_N_LIMIT"
+	for tag in `eval $make_log`; do
 		local author=`git show --no-notes --format=format:%an $tag | head -n 1`
 		[ "$author" == "$FULLNAME" ] && echo "`paint 32 '*'` $tag" || echo "`paint 31 '~'` $tag"
 	done
@@ -178,8 +181,17 @@ while test $# != "0"; do
 				1,*) usage;;
 				*) PKG_DEST="$2"; shift;;
 			esac;;
+
+		-n|--limit*)
+			case "$#,$1" in
+				*,*=*) OPT_N_LIMIT=`expr "z$1" : 'z-[^=]*=\(.*\)'`;;
+				1,*) usage;;
+				*) OPT_N_LIMIT="$2"; shift;;
+			esac;;
+
 		-f|--force) OPT_FORCE_BUILD="1";;
 		--fake) OPT_FAKE_BUILD="1";;
+
 		--) break;;
 		-*) usage;;
 		*) break;;
