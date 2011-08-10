@@ -6,7 +6,7 @@
 #####
 
 
-USAGE='[-d Nsystem|--dest=system] [-n N|--limit=N] [-f|--force] [--fake] [changelog|build|info|log]'
+USAGE='[-d system|--dest=system] [changelog|build|info|log] [-n N|--limit=N] [-f|--force] [--fake]'
 SUBDIRECTORY_OK="1"
 
 
@@ -23,6 +23,35 @@ paint() {
 
 
 ##### Common functions #####
+parse_common_opts() {
+	OPT_N_LIMIT="10"
+	OPT_N_ALL=""
+	OPT_FORCE=""
+	OPT_FAKE=""
+
+	while test $# != "0"; do
+		case "$1" in
+			-n|--limit*)
+				case "$#,$1" in
+					*,*=*) OPT_N_LIMIT=`expr "z$1" : 'z-[^=]*=\(.*\)'`;;
+					1,*) usage;;
+					*) OPT_N_LIMIT="$2"; shift;;
+				esac;;
+
+			-a|--all) OPT_N_ALL="1";;
+			-f|--force) OPT_FORCE="1";;
+			--fake) OPT_FAKE="1";;
+
+			--) break;;
+			-*) usage;;
+			*) break;;
+		esac
+		shift
+	done
+
+	[ "$OPT_N_LIMIT" -ne "0" -a -z "$OPT_N_ALL" ] || unset OPT_N_LIMIT
+}
+
 check_version() {
 	local version_tag_pattern=`echo "$PKG_TAG_FORMAT" \
 		| sed -e "s/%t/$PKG_TYPE/g" \
@@ -73,6 +102,8 @@ changelog() {
 
 
 build() {
+	parse_common_opts $@
+
 	local version_tag=`echo "$PKG_TAG_FORMAT" \
 		| sed -e "s/%t/$PKG_TYPE/g" \
 		| sed -e "s/%v/\`${PKG_TYPE}_last_version\`/g" \
@@ -80,9 +111,9 @@ build() {
 		| sed -e "s/%n/$PKG_DEST/g" \
 		| sed -e "s/%m/$PKG_META/g"`
 
-	[ -n "$OPT_FORCE_BUILD" ] || check_version "$version_tag"
+	[ -n "$OPT_FORCE" ] || check_version "$version_tag"
 
-	if [ -z "$OPT_FAKE_BUILD" ]; then
+	if [ -z "$OPT_FAKE" ]; then
 		${PKG_TYPE}_build_prepare || die "  --- Build prepare error ---"
 		${PKG_TYPE}_build || die "  --- Build error ---"
 		${PKG_TYPE}_build_clean  || die "  --- Build clean error ---"
@@ -90,7 +121,7 @@ build() {
 		echo "Fake build"
 	fi
 
-	[ -n "$OPT_FORCE_BUILD" ] || set_version "$version_tag"
+	[ -n "$OPT_FORCE" ] || set_version "$version_tag"
 }
 
 
@@ -110,13 +141,15 @@ system_info() {
 }
 
 builds_log() {
+	parse_common_opts $@
+
 	local version_tag_pattern=`echo "$PKG_TAG_FORMAT" \
 		| sed -e "s/%t/$PKG_TYPE/g" \
 		| sed -e "s/%a/$PKG_ARCH/g" \
 		| sed -e "s/%n/$PKG_DEST/g" \
 		| sed -e "s/%[vm]/.*/g" `
 
-	say "# Builds log for $PKG_DEST/$PKG_TYPE ($PKG_ARCH)"
+	say "# Builds log for `paint 36 $PKG_DEST`/$PKG_TYPE ($PKG_ARCH)"
 	[ -z "$OPT_N_LIMIT" ] || say "# Last `paint 36 "$OPT_N_LIMIT"` builds"
 	say "#   `paint 32 '*'` -- Your builds"
 	say "#   `paint 31 '~'` -- Other builds"
@@ -184,16 +217,6 @@ while test $# != "0"; do
 				*) PKG_DEST="$2"; shift;;
 			esac;;
 
-		-n|--limit*)
-			case "$#,$1" in
-				*,*=*) OPT_N_LIMIT=`expr "z$1" : 'z-[^=]*=\(.*\)'`;;
-				1,*) usage;;
-				*) OPT_N_LIMIT="$2"; shift;;
-			esac;;
-
-		-f|--force) OPT_FORCE_BUILD="1";;
-		--fake) OPT_FAKE_BUILD="1";;
-
 		--) break;;
 		-*) usage;;
 		*) break;;
@@ -204,10 +227,10 @@ done
 [ -n "$PKG_DEST" ] || die "Please, specify a destination"
 
 case "$1" in
-	c|changelog) init_config; changelog;;
-	b|build) init_config; build;;
-	i|info) init_config; system_info;;
-	l|log) init_config; builds_log;;
+	c|changelog) shift; init_config; changelog;;
+	b|build) shift; init_config; build $@;;
+	i|info) shift; init_config; system_info;;
+	l|log) shift; init_config; builds_log $@;;
 	"") usage;;
 	*) init_config; extension $@;;
 esac
