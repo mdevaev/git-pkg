@@ -7,6 +7,7 @@
 
 
 source git-sh-setup
+source git-pkg-shared
 
 
 PKG_TYPE_arch="1"
@@ -66,11 +67,7 @@ arch_build() {
 	local makepkg_opts=`git config pkg.makepkg-opts || echo "--holdver --clean"`
 
 	pushd "$PKG_ARCH_BUILDROOT"
-	if [ -n "$PKG_SCHROOT" ]; then
-		LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "makepkg $makepkg_opts"
-	else
-		LC_ALL="C" makepkg $makepkg_opts
-	fi
+	dest_exec "makepkg $makepkg_opts"
 	local ret="$?"
 	[ "$ret" -ne "0" ] || mv "$project_name"*.tar.* ..
 	popd

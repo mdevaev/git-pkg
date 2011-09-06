@@ -11,15 +11,10 @@ SUBDIRECTORY_OK="1"
 
 
 source git-sh-setup
+source git-pkg-shared
 source git-pkg-arch
 source git-pkg-deb
-
-
-##### Formatting #####
-paint() {
-	# For first argument, see man 4 console_codes
-	[ -n "$USE_COLORS" ] && echo -en "\e[1;$1m$2\e[0m" || echo -en "$2"
-}
+source git-pkg-rpm
 
 
 ##### Common functions #####
@@ -135,7 +130,7 @@ system_info() {
 	if [ -n "$PKG_SCHROOT" ]; then
 		schroot -p -c "$PKG_SCHROOT" -- /bin/true && echo "  Schroot test  OK" || die "  Schroot test FAIL"
 		echo
-		schroot -i "$PKG_SCHROOT"
+		schroot -i -c "$PKG_SCHROOT"
 	fi
 	echo
 }
@@ -202,6 +197,8 @@ init_config() {
 	[ -n "`eval echo \\$PKG_TYPE_"$PKG_TYPE"`" ] || die "Unknown type \"$PKG_TYPE\" in pkg.$PKG_DEST.type"
 	[ -n "$PKG_SCHROOT" ] && ( which schroot >/dev/null 2>&1 || die "Bin \"schroot\" is not found" )
 	[ -n "$PKG_SCHROOT" ] && ( [ -n "`schroot -l | grep "^chroot:$PKG_SCHROOT$"`" ] || die "Unknown chroot \"$PKG_SCHROOT\"" )
+
+	export GIT_PKG="1"
 
 	${PKG_TYPE}_init_config
 }

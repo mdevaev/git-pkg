@@ -7,6 +7,7 @@
 
 
 source git-sh-setup
+source git-pkg-shared
 
 
 PKG_TYPE_deb="1"
@@ -70,11 +71,7 @@ deb_build() {
 	local debuild_opts=`git config pkg.debuild-opts || echo "--no-tgz-check --no-lintian"`
 
 	pushd "$PKG_DEB_BUILDROOT"
-	if [ -n "$PKG_SCHROOT" ]; then
-		LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "debuild $debuild_opts -a$PKG_ARCH"
-	else
-		LC_ALL="C" debuild $debuild_opts -a$PKG_ARCH
-	fi
+	dest_exec "debuild $debuild_opts -a$PKG_ARCH"
 	local ret="$?"
 	popd
 
@@ -83,11 +80,7 @@ deb_build() {
 
 deb_build_clean() {
 	pushd "$PKG_DEB_BUILDROOT"
-	if [ -n "$PKG_SCHROOT" ]; then
-		LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "debuild clean"
-	else
-		LC_ALL="C" debuild clean
-	fi
+	dest_exec "debuild clean"
 	local ret="$?"
 	popd
 
@@ -102,11 +95,7 @@ deb_upload() {
 	local to_upload="`deb_project_name`*`deb_last_version`*.changes"
 
 	pushd "$PKG_DEB_ROOT"
-	if [ -n "$PKG_SCHROOT" ]; then
-		LC_ALL="C" schroot -p -c "$PKG_SCHROOT" -- /bin/bash -c "dupload $dupload_opts $to_upload"
-	else
-		LC_ALL="C" dupload $dupload_opts $to_upload
-	fi
+	dest_exec "dupload $dupload_opts $to_upload"
 	local ret="$?"
 	popd
 
