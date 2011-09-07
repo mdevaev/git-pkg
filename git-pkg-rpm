@@ -1,0 +1,115 @@
+#!/bin/bash
+#
+# RPM-build plugin for git-pkg
+#  by Devaev Maxim <mdevaev@gmail.com> (c) 2011 v0.1
+#
+#####
+
+
+source git-sh-setup
+source git-pkg-shared
+
+
+#####
+PKG_TYPE_rpm="1"
+
+PKG_RPM_ROOT="pkg-root.rpm"
+PKG_RPM_BUILDROOT="$PKG_RPM_ROOT/buildroot"
+
+
+#####
+rpm_init_config() {
+	SPEC_FILE=`ls *.spec 2>/dev/null | head -n 1`
+	[ -f "$SPEC_FILE" ] || die "Spec file does not exists"
+
+	local tmp_spec_file=`mktemp`.spec
+	git show "HEAD:$SPEC_FILE" > "$tmp_spec_file"
+
+	local packager=`dest_exec "rpm -q --qf \"%{packager}\" --specfile \"$SPEC_FILE\"" | sed 's/(none)//g'`
+	local packager_fullname=`echo $packager | sed -e 's/\(^[^<]*\).*/\1/g; s/ *$//g'`
+	local packager_email=`echo $packager | sed -e 's/ *(.*)//; s/>.*//; s/.*[:<] *//'`
+
+	[ -z "$packager_fullname" ] || FULLNAME="$packager_fullname"
+	[ -z "$packager_email" ] || EMAIL="$packager_email"
+
+	rm -f "$tmp_spec_file"
+}
+
+
+#####
+rpm_project_name() {
+	local tmp_spec_file=`mktemp`.spec
+	git show "HEAD:$SPEC_FILE" > "$tmp_spec_file"
+	dest_exec "rpm -q --qf \"%{name}\" --specfile \"$tmp_spec_file\""
+	rm -f "$tmp_spec_file"
+}
+
+rpm_last_version() {
+	local tmp_spec_file=`mktemp`.spec
+	git show "HEAD:$SPEC_FILE" > "$tmp_spec_file"
+	dest_exec "rpm -q --qf \"%{version}-%{release}\" --specfile \"$tmp_spec_file\""
+	rm -f "$tmp_spec_file"
+}
+
+
+#####
+rpm_update_changelog() {
+	local now=`LC_ALL="C" date +'%a %b %d %Y'`
+	local records=`sed -e 's/^\(.*\)$/- \1/g;' | sed -e ':a;N;$!ba;s/\n/\\\n/g'`
+	local changelog=`echo -n "* $now $FULLNAME <$EMAIL> - ...\n$records"`
+	sed -i -e "/%changelog/a $changelog\n" "$SPEC_FILE"
+}
+
+rpm_edit_changelog() {
+	$EDITOR "$SPEC_FILE"
+
+	local new_version=`dest_exec "rpm -q --qf \"%{version}-%{release}\" --specfile \"$SPEC_FILE\""`
+	local last_version=`rpm_last_version`
+
+	[ "$new_version" != "$last_version" ] || die "Please, specify a correct version in spec"
+
+	git add "$SPEC_FILE"
+	git commit -m "Git-pkg autocommit: $PKG_TYPE changelog for $new_version"
+}
+
+rpm_build_prepare() {
+	rm -rf "$PKG_RPM_ROOT"
+	mkdir -p "$PKG_RPM_BUILDROOT"/{SOURCES,SPECS,BUILD,RPMS,SRPMS}
+
+	local project_name=`rpm_project_name`
+
+	git checkout-index -f -a --prefix="$PKG_RPM_BUILDROOT/SOURCES/$project_name/" || return "1"
+	mv -f "$PKG_RPM_BUILDROOT/SOURCES/$project_name/*.patch" "$PKG_RPM_BUILDROOT/SOURCES"
+	mv -f "$PKG_RPM_BUILDROOT/SOURCES/$project_name/$SPEC_FILE" "$PKG_RPM_BUILDROOT/SPECS/"
+	pushd "$PKG_RPM_BUILDROOT/SOURCES"
+	say "Compressing sources..."
+	tar -cjf "$project_name.tar.bz2" "$project_name"
+	popd
+}
+
+rpm_build() {
+	local rpmbuild_opts=`git config pkg.rpmbuild-opts || echo -ba`
+
+	local tmp_spec_file=`mktemp`.spec
+
+	echo "%define packager $FULLNAME $EMAIL" > "$tmp_spec_file"
+	echo "%define _topdir `pwd`/$PKG_RPM_BUILDROOT" >> "$tmp_spec_file"
+	cat "$PKG_RPM_BUILDROOT/SPECS/$SPEC_FILE" >> "$tmp_spec_file"
+
+	pushd "$PKG_RPM_BUILDROOT"
+	dest_exec "rpmbuild $rpmbuild_opts --target=\"$PKG_ARCH\" \"$tmp_spec_file\"&& \
+		rpmbuild --quiet --clean --rmsource \"$tmp_spec_file\""
+	local ret="$?"
+	[ "$ret" -ne "0" ] || mv {RPMS/*,SRPMS}/*.rpm ..
+	popd
+	[ "$ret" -ne "0" ] || echo -e "\nBuilding successfull finished at `date`"
+
+	rm -f "$tmp_spec_file"
+
+	return "$ret"
+}
+
+rpm_build_clean() {
+	rm -rf "$PKG_RPM_BUILDROOT"
+}
+
