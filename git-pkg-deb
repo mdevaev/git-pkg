@@ -10,19 +10,18 @@ source git-sh-setup
 source git-pkg-shared
 
 
+#####
 PKG_TYPE_deb="1"
 PKG_EXTENSIONS_deb="u upload"
 
-
-#####
 PKG_DEB_ROOT="pkg-root.deb"
 PKG_DEB_BUILDROOT="$PKG_DEB_ROOT/buildroot"
 
 
 #####
 deb_init_config() {
-	[ -z "$DEBFULLNAME" ] || FULLNAME="$DEBFULLNAME"
-	[ -z "$DEBMAIL" ] || EMAIL="$DEBMAIL"
+	[ -n "$DEBFULLNAME" ] && FULLNAME="$DEBFULLNAME" || DEBFULLNAME="$FULLNAME"
+	[ -n "$DEBMAIL" ] && EMAIL="$DEBMAIL" || DEBMAIL="$EMAIL"
 	[ -d "debian" ] || die "Debian package directory does not exists"
 }
 

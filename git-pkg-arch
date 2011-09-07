@@ -10,10 +10,9 @@ source git-sh-setup
 source git-pkg-shared
 
 
+#####
 PKG_TYPE_arch="1"
 
-
-#####
 PKG_ARCH_ROOT="pkg-root.arch"
 PKG_ARCH_BUILDROOT="$PKG_ARCH_ROOT/buildroot"
 
@@ -26,19 +25,11 @@ arch_init_config() {
 
 #####
 arch_project_name() {
-	local tmp_pkgbuild=`mktemp`
-	git show HEAD:PKGBUILD > "$tmp_pkgbuild"
-	source "$tmp_pkgbuild"
-	echo "$pkgname"
-	rm -f "$tmp_pkgbuild"
+	( source <(git show HEAD:PKGBUILD); echo $pkgname )
 }
 
 arch_last_version() {
-	local tmp_pkgbuild=`mktemp`
-	git show HEAD:PKGBUILD > "$tmp_pkgbuild"
-	source "$tmp_pkgbuild"
-	echo "$pkgver-$pkgrel"
-	rm -f "$tmp_pkgbuild"
+	( source <(git show HEAD:PKGBUILD); echo $pkgver-$pkgrel )
 }
 
 
@@ -50,9 +41,12 @@ arch_update_changelog() {
 
 arch_edit_changelog() {
 	$EDITOR PKGBUILD
-	source PKGBUILD
+
+	local new_version=`( source PKGBUILD; echo $pkgver-$pkgrel )`
+	[ -n "$new_version" ] || die "Please, specify a correct version in PKGBUILD"
+
 	git add PKGBUILD
-	git commit -m "Git-pkg autocommit: $PKG_TYPE PKGBUILD for $pkgver-$pkgrel"
+	git commit -m "Git-pkg autocommit: $PKG_TYPE PKGBUILD for $new_version"
 }
 
 
