@@ -180,7 +180,7 @@ init_config() {
 
 	PKG_SCHROOT=`git config pkg."$PKG_DEST".schroot`
 	PKG_TYPE=`git config pkg."$PKG_DEST".type`
-	PKG_ARCH=`git config pkg."$PKG_DEST".arch || arch`
+	PKG_ARCH=`git config pkg."$PKG_DEST".arch || uname -m`
 	PKG_META=`git config pkg."$PKG_DEST".meta`
 	PKG_TAG_FORMAT=`git config pkg.tag-format || echo "pkg-%t-%n-%v-%a"`
 
