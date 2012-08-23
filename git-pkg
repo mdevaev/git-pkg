@@ -188,6 +188,7 @@ init_config() {
 	FULLNAME=`git config user.name`
 	EMAIL=`git config user.email`
 
+	FINAL_PUSH=`[ "\`git config pkg.final-push || echo no\`" == "no" ] || echo "1"`
 	USE_COLORS=`[ "\`git config color.status\`" == "no" ] || echo "1"` # FIXME: Auto = yes
 
 	for var in PKG_TYPE PKG_ARCH EDITOR FULLNAME EMAIL; do

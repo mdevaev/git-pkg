@@ -96,6 +96,7 @@ deb_upload() {
 	pushd "$PKG_DEB_ROOT"
 	dest_exec "dupload $dupload_opts $to_upload"
 	local ret="$?"
+	[ -n "$FINAL_PUSH" ] && ( git push; git push --tags )
 	popd
 
 	return "$ret"
